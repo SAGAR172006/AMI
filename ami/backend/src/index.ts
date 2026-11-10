@@ -3,6 +3,7 @@ import cors from 'cors';
 import fileUpload from 'express-fileupload';
 import { config } from './config';
 import { errorHandler } from './middleware/errorHandler';
+import { restrictToAllowedIps } from './middleware/ipRestriction';
 
 import { authRouter } from './routers/auth';
 import { modulesRouter } from './routers/modules';
@@ -13,6 +14,9 @@ import { mockTestRouter } from './routers/mockTest';
 import { voiceRouter } from './routers/voice';
 
 const app = express();
+
+// Trust reverse proxy headers (Vercel, Render, Cloudflare)
+app.set('trust proxy', true);
 
 // Allow local dev + any Vercel preview/production URL set via env
 const allowedOrigins = [
@@ -35,6 +39,9 @@ app.use(express.json());
 app.use(fileUpload());
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
+
+// IP Security Gate: Public visitors can view demo modules; live generation is locked to authorized IP
+app.use(restrictToAllowedIps);
 
 app.use('/api/auth', authRouter);
 app.use('/api/modules', modulesRouter);

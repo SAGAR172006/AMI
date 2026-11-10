@@ -191,7 +191,7 @@ AMI features **AMI Voice**, an industrial voice-first multimodal learning layer 
 
 ```mermaid
 graph TD
-    User["User Voice & Controls"] --> UI["AMI Frontend (React / Vite)"]
+    User["User Voice and Controls"] --> UI["AMI Frontend (React / Vite)"]
     
     subgraph ClientEngine["Client-Side Audio Engine"]
         Rec["MediaRecorder (Mic Capture)"] --> WavEncoder["In-Browser 16-bit PCM WAV Transcoder"]
@@ -199,36 +199,36 @@ graph TD
     end
     
     UI --> Rec
-    AudioBlob -->|HTTP / Audio Chunks| VoiceRouter["API Router (/api/voice)"]
-    UI -->|Lesson / Test Narration Request| VoiceRouter
+    AudioBlob -->|"HTTP / Audio Chunks"| VoiceRouter["API Router (/api/voice)"]
+    UI -->|"Narration Request"| VoiceRouter
     
     subgraph VoiceBackend["Voice Agent Layer (/api/voice)"]
         Orchestrator["Agent 1: Voice Orchestrator"]
         STTAgent["Agent 2: STT Agent (Gnani Prisma v3.0)"]
         TranslatorAgent["Agent 3: Translator Subagent (Gemini LLM)"]
         TTSAgent["Agent 4: TTS Agent (Gnani Timbre v2.5)"]
-        TTSCache[("SHA-256 Audio Cache (Disk & Memory)")]
+        TTSCache[("SHA-256 Audio Cache (Disk and Memory)")]
         
         VoiceRouter --> Orchestrator
         
         %% STT Flow
-        Orchestrator -->|WAV Audio + Language Code| STTAgent
-        STTAgent -->|Raw Transcript + Detected Lang| Orchestrator
+        Orchestrator -->|"WAV Audio File"| STTAgent
+        STTAgent -->|"Raw Transcript and Detected Lang"| Orchestrator
         
         %% Translation Flow (Bidirectional)
-        Orchestrator -->|1. Student Spoken Answer| TranslatorAgent
-        TranslatorAgent -->|Normalized Academic English| Orchestrator
-        Orchestrator -->|2. Lesson Content / Feedback| TranslatorAgent
-        TranslatorAgent -->|Native Indic Translation (Hi/Kn/Ta/etc.)| Orchestrator
+        Orchestrator -->|"1. Student Spoken Answer"| TranslatorAgent
+        TranslatorAgent -->|"Normalized Academic English"| Orchestrator
+        Orchestrator -->|"2. Lesson Text or Feedback"| TranslatorAgent
+        TranslatorAgent -->|"Native Indic Translation"| Orchestrator
         
         %% TTS Flow
-        Orchestrator -->|Chunked Sentences <=180 chars| TTSAgent
+        Orchestrator -->|"Chunked Sentences"| TTSAgent
         TTSAgent <--> TTSCache
-        TTSAgent -->|Synthesized MP3 Audio Stream| Orchestrator
+        TTSAgent -->|"Synthesized MP3 Audio Stream"| Orchestrator
     end
     
-    Orchestrator -->|Editable Transcript for Confirmation| UI
-    Orchestrator -->|Cached MP3 Audio Stream| Playback["User Listens (Gnani Player / ListenButton)"]
+    Orchestrator -->|"Editable Transcript"| UI
+    Orchestrator -->|"Cached MP3 Audio Stream"| Playback["User Listens (Gnani Player / ListenButton)"]
     Playback --> UI
 ```
 
