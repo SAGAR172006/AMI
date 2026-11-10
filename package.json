@@ -1,0 +1,9 @@
+{
+  "name": "ami-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "cd ami/frontend && npm install && npm run build",
+    "install": "cd ami/frontend && npm install"
+  }
+}

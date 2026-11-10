@@ -180,3 +180,93 @@ npm install
 npm run dev
 ```
 Starts frontend Vite server on `http://localhost:5173`.
+
+---
+
+## 🎙️ AMI Voice — Gnani AI Voice Agent Layer
+
+AMI features **AMI Voice**, an industrial voice-first multimodal learning layer powered by **Gnani AI** (`api.vachana.ai`) APIs and Google Gemini translator subagents. Students can speak their answers in any of 11 Indic languages (including Hinglish code-mixed speech) and listen to fully translated, narrated audio lessons and step-by-step grader feedback.
+
+### Voice Agent Pipeline & Architecture
+
+```mermaid
+graph TD
+    User["User Voice & Controls"] --> UI["AMI Frontend (React / Vite)"]
+    
+    subgraph ClientEngine["Client-Side Audio Engine"]
+        Rec["MediaRecorder (Mic Capture)"] --> WavEncoder["In-Browser 16-bit PCM WAV Transcoder"]
+        WavEncoder --> AudioBlob["Standard audio/wav Blob"]
+    end
+    
+    UI --> Rec
+    AudioBlob -->|HTTP / Audio Chunks| VoiceRouter["API Router (/api/voice)"]
+    UI -->|Lesson / Test Narration Request| VoiceRouter
+    
+    subgraph VoiceBackend["Voice Agent Layer (/api/voice)"]
+        Orchestrator["Agent 1: Voice Orchestrator"]
+        STTAgent["Agent 2: STT Agent (Gnani Prisma v3.0)"]
+        TranslatorAgent["Agent 3: Translator Subagent (Gemini LLM)"]
+        TTSAgent["Agent 4: TTS Agent (Gnani Timbre v2.5)"]
+        TTSCache[("SHA-256 Audio Cache (Disk & Memory)")]
+        
+        VoiceRouter --> Orchestrator
+        
+        %% STT Flow
+        Orchestrator -->|WAV Audio + Language Code| STTAgent
+        STTAgent -->|Raw Transcript + Detected Lang| Orchestrator
+        
+        %% Translation Flow (Bidirectional)
+        Orchestrator -->|1. Student Spoken Answer| TranslatorAgent
+        TranslatorAgent -->|Normalized Academic English| Orchestrator
+        Orchestrator -->|2. Lesson Content / Feedback| TranslatorAgent
+        TranslatorAgent -->|Native Indic Translation (Hi/Kn/Ta/etc.)| Orchestrator
+        
+        %% TTS Flow
+        Orchestrator -->|Chunked Sentences <=180 chars| TTSAgent
+        TTSAgent <--> TTSCache
+        TTSAgent -->|Synthesized MP3 Audio Stream| Orchestrator
+    end
+    
+    Orchestrator -->|Editable Transcript for Confirmation| UI
+    Orchestrator -->|Cached MP3 Audio Stream| Playback["User Listens (Gnani Player / ListenButton)"]
+    Playback --> UI
+```
+
+### The Four Voice Agents in Action
+
+1. **Agent 1: Voice Orchestrator (`voiceOrchestrator.ts`)**
+   - Central control hub managing session state, user language selection, and request routing.
+   - Coordinates STT transcription, translation pipelines, step-marking evaluation, and TTS playback synthesis.
+   - Strictly keeps all secret credentials (`GNANI_API_KEY`) on the server side — zero browser exposure.
+
+2. **Agent 2: STT Agent — Gnani Prisma v3.0 (`voiceSttAgent.ts`)**
+   - Transcribes spoken student answers via Gnani Prisma v3.0 with automatic Indic language detection (`indic-auto`).
+   - Pairs with an **In-Browser Web Audio Transcoder (`audioBlobToWav`)** using `AudioContext.decodeAudioData` to convert browser Opus/WebM audio into standard 16-bit PCM WAV (`audio/wav`) with standard 44-byte RIFF headers, guaranteeing full compatibility.
+   - Returns transcripts to the student in an editable box before any submission or grading occurs.
+
+3. **Agent 3: Translator Subagent — Gemini LLM (`voiceTranslatorAgent.ts`)**
+   - Operates bidirectionally between speech agents and the academic orchestrator:
+     - **Direction 1 (Answer → Exam Language):** Translates code-mixed spoken transcripts (Hinglish, Tanglish, Benglish) into clean academic English for grading, preserving technical terminology, proper nouns, and equations (e.g., *ATP*, *Chloroplast*, *RuBisCO*).
+     - **Direction 2 (Lesson/Feedback → Student Language):** Translates English questions, study guides, and grader feedback into natural conversational Indic languages for speech synthesis.
+   - **Audio Lesson Translation Subagent:** When a non-English language is chosen in the Audio Lesson tab, the subagent translates the chapter source text before synthesis, ensuring lessons are narrated in the actual chosen language rather than just changing accents.
+
+4. **Agent 4: TTS Agent — Gnani Timbre v2.5 (`voiceTtsAgent.ts`)**
+   - Synthesizes educational lessons and feedback into natural, high-fidelity audio streams.
+   - Automatically slices long text into clean 1–2 sentence chunks (<=180 characters) to ensure natural prosody and eliminate timeout risks.
+   - Implements two-tier caching: in-memory `Map` (100 hot entries) + SHA-256 hashed disk cache (`.cache/tts/*.mp3`), ensuring zero redundant API calls when replaying sections.
+   - Maps natural voice actors: **Kaveri** (English/Indic), **Nalini** (Hindi), **Deepak** (Hindi), **Poorvi** (Hinglish).
+
+---
+
+## 🚀 Recent Addons & System Enhancements
+
+| Feature / Fix | Description |
+|---|---|
+| **Audio Lesson Source Translation** | Integrated Gemini translator subagent into `GnaniAudioPlayer.jsx`. Selecting Hindi, Kannada, Tamil, etc., automatically translates the lesson prose before Gnani Timbre narrates, updating the text card in real time with client-side caching. |
+| **Full Immersive Text Navigation** | Added top forward/backward arrow navigation buttons (`Ico.ArrowLeft` / `Ico.ArrowRight`) and bottom section navigators. Made all roadmap sidebar items clickable for non-linear reading across all 4 sections. |
+| **Complete Interactive Quizzes** | Populated comprehensive prose and interactive inline concept quizzes across all 4 learning sections (What is Photosynthesis, The Two Stages, The Calvin Cycle, and Why It Matters). |
+| **Two-Stage Topic-Grounded Chatbot** | Implemented a 2-stage conversational pipeline in `chat.ts`: Stage 1 uses Gemini as a strict topic classifier to reject off-topic questions (*"Please ask questions related to [Topic] only."*), while Stage 2 provides accurate, context-grounded AI tutoring. |
+| **STT WAV Transcoding Engine** | Added client-side `audioBlobToWav()` Web Audio converter in `audioRecorder.js` to eliminate `UNSUPPORTED_AUDIO_FORMAT` errors by outputting standard 16-bit PCM WAV. |
+| **Resilient Gemini Key Pool** | Hardened model fallback chain with active models (`gemini-2.5-flash`, `gemini-1.5-flash`, `gemini-3.8-flash`) and transient 503 high-demand retry handling across all 27 keys. |
+| **Monorepo Vercel Deployment** | Added root `vercel.json` and `package.json` to seamlessly delegate builds to `ami/frontend`, resolving `vite: command not found` on Vercel. |
+
