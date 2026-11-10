@@ -10,6 +10,7 @@ import { chatRouter } from './routers/chat';
 import { statsRouter } from './routers/stats';
 import { demoRouter } from './routers/demo';
 import { mockTestRouter } from './routers/mockTest';
+import { voiceRouter } from './routers/voice';
 
 const app = express();
 
@@ -41,6 +42,7 @@ app.use('/api/chat', chatRouter);
 app.use('/api/stats', statsRouter);
 app.use('/api/demo', demoRouter);
 app.use('/api/mock-test', mockTestRouter);
+app.use('/api/voice', voiceRouter);
 
 app.use(errorHandler);
 

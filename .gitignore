@@ -48,4 +48,6 @@ Thumbs.db
 .gemini/
 brain/
 scratch/
+.cache/
+ami/backend/.cache/
 .system_generated/

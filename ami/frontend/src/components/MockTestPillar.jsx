@@ -1,8 +1,14 @@
 import { useState, useRef, useMemo, useEffect } from 'react'
 import { api } from '../services/api.js'
 import { Ico } from './ui/Icons.jsx'
+import LanguagePicker, { getSavedVoiceLanguage } from './voice/LanguagePicker'
+import VoiceAnswerInput from './voice/VoiceAnswerInput'
+import ListenButton from './voice/ListenButton'
 
-export default function MockTestPillar({ moduleId, liveModule, onUpdateMockTest }) {
+export default function MockTestPillar({ moduleId, liveModule, onUpdateMockTest, user }) {
+  // Voice & Language state (persists across sessions)
+  const [voiceLanguage, setVoiceLanguage] = useState(getSavedVoiceLanguage);
+
   // Config view states
   const [file, setFile] = useState(null)
   const [maxMarks, setMaxMarks] = useState(20)
@@ -212,12 +218,18 @@ export default function MockTestPillar({ moduleId, liveModule, onUpdateMockTest 
   if (!activeTest) {
     return (
       <div style={{ padding: '32px 48px 48px', maxWidth: 680, margin: '0 auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-          <span className="subject-chip" style={{ background: 'var(--lav-50)', color: 'var(--lav-500)', border: '1px solid var(--lav-200)' }}>
-            <Ico.Target style={{ width: 14, height: 14 }}/> Custom Mock Test
-          </span>
-          <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: 'var(--ink-900)' }}>AI Question Paper & Step-Marking Generator</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span className="subject-chip" style={{ background: 'var(--lav-50)', color: 'var(--lav-500)', border: '1px solid var(--lav-200)' }}>
+              <Ico.Target style={{ width: 14, height: 14 }}/> Custom Mock Test
+            </span>
+            <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--peach-500)', background: 'var(--peach-50)', padding: '3px 8px', borderRadius: 999 }}>
+              🎙️ AMI Voice Ready
+            </span>
+          </div>
+          <LanguagePicker currentLang={voiceLanguage} onChange={setVoiceLanguage} user={user} compact />
         </div>
+        <h2 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 20px', color: 'var(--ink-900)' }}>AI Question Paper & Step-Marking Generator</h2>
 
         {error && (
           <div style={{ padding: '12px 16px', background: 'rgba(226,106,92,0.08)', border: '1px solid var(--error)', borderRadius: 'var(--r-md)', fontSize: 13.5, color: 'var(--error)', marginBottom: 20, fontWeight: 500 }}>
@@ -415,7 +427,10 @@ export default function MockTestPillar({ moduleId, liveModule, onUpdateMockTest 
       <div style={{ padding: '32px 48px 48px', maxWidth: 800, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 36 }}>
           <span style={{ fontSize: 52 }}>🎯</span>
-          <h2 style={{ fontSize: 24, fontWeight: 800, margin: 0, color: 'var(--ink-900)' }}>Exam Evaluation Complete</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <h2 style={{ fontSize: 24, fontWeight: 800, margin: 0, color: 'var(--ink-900)' }}>Exam Evaluation Complete</h2>
+            <LanguagePicker currentLang={voiceLanguage} onChange={setVoiceLanguage} user={user} compact />
+          </div>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 16, marginTop: 12 }}>
             <div style={{
               width: 80, height: 80, borderRadius: '50%',
@@ -465,7 +480,15 @@ export default function MockTestPillar({ moduleId, liveModule, onUpdateMockTest 
 
                 {/* Step grading feedback */}
                 <div style={{ marginBottom: 16 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)', display: 'block', marginBottom: 8 }}>Step-by-Step Marking Breakdown</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-500)' }}>Step-by-Step Marking Breakdown</span>
+                    <ListenButton
+                      text={`Question ${idx + 1}. You scored ${obtained} out of ${q.marks} marks. ${q.evaluation?.stepGrades?.map(sg => sg.feedback).filter(Boolean).join('. ')}`}
+                      language={voiceLanguage}
+                      label="Listen Feedback"
+                      compact
+                    />
+                  </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {q.evaluation?.stepGrades?.map((sg, sgIdx) => {
                       const baseStep = q.stepMarking[sgIdx] || { marks: 0 }
@@ -517,7 +540,10 @@ export default function MockTestPillar({ moduleId, liveModule, onUpdateMockTest 
           <span className="eyebrow" style={{ color: 'var(--lav-500)' }}>Exam Mode</span>
           <h2 style={{ fontSize: 20, fontWeight: 700, margin: '4px 0 0', color: 'var(--ink-900)' }}>{activeTest.topic}</h2>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          {/* AMI Voice Language Picker */}
+          <LanguagePicker currentLang={voiceLanguage} onChange={setVoiceLanguage} user={user} compact />
+
           {/* Difficulty Level Dropdown */}
           <div style={{ position: 'relative' }}>
             <button 
@@ -586,13 +612,21 @@ export default function MockTestPillar({ moduleId, liveModule, onUpdateMockTest 
       {/* List of interactive questions */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 32, marginBottom: 36 }}>
         {activeTest.questions.map((q, idx) => (
-          <div key={q.id} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--ink-900)', lineHeight: 1.4 }}>
-                {idx + 1}. {q.question}
-              </h3>
+          <div key={q.id} style={{ display: 'flex', flexDirection: 'column', gap: 14, background: 'var(--paper)', borderRadius: 'var(--r-lg)', border: '1px solid var(--ink-100)', padding: 24, boxShadow: 'var(--shadow-sm)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--lav-500)', textTransform: 'uppercase' }}>
+                    Question {idx + 1}
+                  </span>
+                  <ListenButton text={q.question} language={voiceLanguage} label="Listen Question" compact />
+                </div>
+                <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--ink-900)', lineHeight: 1.5 }}>
+                  {q.question}
+                </h3>
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
-                <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--lav-500)', background: 'var(--lav-50)', padding: '4px 10px', borderRadius: 999, whiteSpace: 'nowrap', alignSelf: 'flex-start' }}>
+                <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--peach-500)', background: 'var(--peach-50)', padding: '4px 10px', borderRadius: 999, whiteSpace: 'nowrap' }}>
                   {q.marks} Marks
                 </span>
                 {q.difficultyRating && (
@@ -607,37 +641,62 @@ export default function MockTestPillar({ moduleId, liveModule, onUpdateMockTest 
               </div>
             </div>
 
-            {/* Step marking instructions guide to direct learner */}
-            <div style={{ background: 'var(--cream-deep)', borderRadius: 'var(--r-md)', padding: 12, fontSize: 12.5, borderLeft: '3px solid var(--lav-300)' }}>
+            {/* Step marking instructions guide */}
+            <div style={{ background: 'var(--cream-deep)', borderRadius: 'var(--r-md)', padding: '10px 14px', fontSize: 12.5, borderLeft: '3px solid var(--lav-300)' }}>
               <span style={{ fontWeight: 600, color: 'var(--ink-600)', display: 'block', marginBottom: 4 }}>Step-marking breakdown:</span>
-              <ul style={{ margin: 0, paddingLeft: 16, color: 'var(--ink-500)', display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <ul style={{ margin: 0, paddingLeft: 16, color: 'var(--ink-500)', display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {q.stepMarking.map((sm, smIdx) => (
                   <li key={smIdx}>{sm.step} ({sm.marks} {sm.marks === 1 ? 'mark' : 'marks'})</li>
                 ))}
               </ul>
             </div>
 
-            {/* Suggested Answer Key directly rendered */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '16px 20px', background: 'rgba(79,176,122,0.03)', borderRadius: 'var(--r-md)', borderLeft: '3.5px solid var(--success)', marginTop: 4 }}>
-              <span style={{ fontSize: 12, fontWeight: 750, color: 'var(--success)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Suggested Model Answer ({q.marks} Marks)</span>
-              <p style={{ fontSize: 14, color: 'var(--ink-800)', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-                {q.suggestedAnswer}
-              </p>
+            {/* Student Answer Input (Voice or Typing) */}
+            <div>
+              <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-700)', display: 'block', marginBottom: 6 }}>
+                Your Answer <span style={{ fontSize: 11.5, fontWeight: 400, color: 'var(--ink-400)' }}>(speak in any selected language, or type)</span>
+              </label>
+              <VoiceAnswerInput
+                value={userAnswers[q.id] || ''}
+                onChange={(text) => setUserAnswers((prev) => ({ ...prev, [q.id]: text }))}
+                languageCode={voiceLanguage}
+                placeholder="Click Speak Answer to record in your chosen language, or type directly..."
+                rows={4}
+                questionId={q.id}
+              />
             </div>
           </div>
         ))}
       </div>
 
       {/* Action Footer */}
-      <div style={{ display: 'flex', gap: 12, justifyContent: 'center', borderTop: '1px solid var(--ink-100)', paddingTop: 24, marginTop: 12 }}>
+      <div style={{ display: 'flex', gap: 14, justifyContent: 'center', borderTop: '1px solid var(--ink-100)', paddingTop: 24, marginTop: 12, flexWrap: 'wrap' }}>
         <button 
           onClick={handleResetExam}
           className="pill pill-ghost"
-          style={{ padding: '12px 24px', fontSize: 14, background: 'var(--lav-50)', color: 'var(--lav-600)', border: '1.5px solid var(--lav-200)', borderRadius: 999, cursor: 'pointer', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, transition: 'all 0.2s' }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'var(--lav-100)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'var(--lav-50)' }}
+          style={{ padding: '12px 24px', fontSize: 14 }}
         >
-          <Ico.ArrowLeft/> Reset & Compile New Exam
+          <Ico.ArrowLeft/> Reset Exam
+        </button>
+
+        <button 
+          onClick={handleSubmitExam}
+          disabled={evaluating}
+          className="pill pill-primary"
+          style={{ padding: '12px 32px', fontSize: 15, display: 'inline-flex', alignItems: 'center', gap: 8 }}
+        >
+          {evaluating ? (
+            <>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ animation: 'spin-slow 1s linear infinite' }}>
+                <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="12" />
+              </svg>
+              Evaluating Answers...
+            </>
+          ) : (
+            <>
+              <Ico.Sparkle/> Submit Exam for AI Step-Marking
+            </>
+          )}
         </button>
       </div>
     </div>

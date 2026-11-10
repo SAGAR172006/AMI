@@ -275,6 +275,15 @@ Plus:
 - [x] PersonaModal (reading level + interests).
 - [x] AccountSettingsModal (name/age/qualification + confirmation delete).
 - [x] Auth state & persistence (login/signup/restore in App.jsx).
+- [x] **AMI Voice — 4-Agent Voice Architecture (Gnani AI & Gemini)**:
+  - Agent 1: Main Voice Orchestrator (`voiceOrchestrator.ts`)
+  - Agent 2: Gnani Prisma v3.0 STT Agent with audio chunking & `indic-auto` detection (`voiceSttAgent.ts`)
+  - Agent 3: Gemini Indic Code-Mixed Translators preserving technical jargon & proper nouns (`voiceTranslatorAgent.ts`)
+  - Agent 4: Gnani Timbre v2.5 TTS Agent with sentence chunking & SHA256 disk/memory caching (`voiceTtsAgent.ts`)
+  - Language Picker supporting 11 Indic languages + Hinglish with Supabase & localStorage persistence
+  - Voice Answer Input on Mock Tests & Tests with editable transcript confirmation before grading
+  - Gnani Timbre Audio Lesson Player replacing browser speech API with multi-speed, chapter transport, and caching
+  - "AMI Voice" landing hero badge, highlight feature card, and model attributions in TopBar and footer
 
 ### 🔲 What's Left
 - [ ] Production build and CDN hosting of the static assets.

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Ico } from '../components/ui/Icons.jsx'
 
-export default function LoadingPage({ topic, fromUpload, onGenerate, onDone }) {
+export default function LoadingPage({ topic, fromUpload, onGenerate, onDone, onBack, onGoLogin }) {
   const phases = fromUpload ? [
     { text: 'Reading your file…', sub: 'Extracting text and figures from your media' },
     { text: 'Removing fluff and extracting core concepts…', sub: 'Identifying what actually matters' },
@@ -16,6 +16,7 @@ export default function LoadingPage({ topic, fromUpload, onGenerate, onDone }) {
 
   const [phase, setPhase] = useState(0)
   const [progress, setProgress] = useState(0)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     const phaseDur = 1700
@@ -39,8 +40,7 @@ export default function LoadingPage({ topic, fromUpload, onGenerate, onDone }) {
         setTimeout(() => onDone(result), 400)
       } catch (err) {
         clearInterval(tick)
-        alert(err.message || 'Generation failed')
-        // We could call a function to go back, but onDone could handle null or we just alert for now.
+        setError(err.message || 'Generation failed')
       }
     }
     
@@ -52,6 +52,39 @@ export default function LoadingPage({ topic, fromUpload, onGenerate, onDone }) {
 
   const current = phases[phase]
   const labels = ['Search', 'Extract', 'Personalize', 'Generate']
+  const isAuthError = error && (error.toLowerCase().includes('token') || error.toLowerCase().includes('auth') || error.toLowerCase().includes('login'))
+
+  if (error) {
+    return (
+      <div className="fade-in" style={{ minHeight: '100vh', background: 'var(--cream)', display: 'grid', placeItems: 'center', padding: '40px 24px', position: 'relative' }}>
+        <div style={{ maxWidth: 460, width: '100%', background: 'var(--paper)', borderRadius: 'var(--r-xl)', padding: 32, boxShadow: 'var(--shadow-lg)', textAlign: 'center', border: '1.5px solid var(--peach-200)', animation: 'fade-up 0.3s ease' }}>
+          <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--peach-50)', color: 'var(--peach-500)', display: 'grid', placeItems: 'center', margin: '0 auto 16px', fontSize: 24 }}>
+            {isAuthError ? '🔐' : '⚠️'}
+          </div>
+          <h2 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 8px', color: 'var(--ink-900)' }}>
+            {isAuthError ? 'Sign In Required' : 'Generation Error'}
+          </h2>
+          <p style={{ fontSize: 14, color: 'var(--ink-600)', lineHeight: 1.5, margin: '0 0 24px' }}>
+            {isAuthError
+              ? `To generate personalized AI modules for "${topic}", please create a free account or sign in. Your progress will be saved automatically.`
+              : error}
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {isAuthError && onGoLogin && (
+              <button className="pill pill-primary" onClick={onGoLogin} style={{ width: '100%', justifyContent: 'center', padding: '12px' }}>
+                Sign in or Sign up to Continue
+              </button>
+            )}
+            {onBack && (
+              <button className="pill pill-ghost" onClick={onBack} style={{ width: '100%', justifyContent: 'center', padding: '10px' }}>
+                Go Back
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="fade-in" style={{ minHeight: '100vh', background: 'var(--cream)', display: 'grid', placeItems: 'center', padding: '40px 24px', position: 'relative' }}>

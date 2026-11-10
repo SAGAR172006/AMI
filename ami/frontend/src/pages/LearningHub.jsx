@@ -4,6 +4,10 @@ import { TopBar } from '../components/layout/TopBar.jsx'
 import { PHOTO_CONTENT } from '../data/content.js'
 import { api } from '../services/api.js'
 import MockTestPillar from '../components/MockTestPillar.jsx'
+import LanguagePicker, { getSavedVoiceLanguage } from '../components/voice/LanguagePicker.jsx'
+import VoiceAnswerInput from '../components/voice/VoiceAnswerInput.jsx'
+import ListenButton from '../components/voice/ListenButton.jsx'
+import GnaniAudioPlayer from '../components/voice/GnaniAudioPlayer.jsx'
 
 // ── Tab bar ──────────────────────────────────────────────────────────────────
 
@@ -154,7 +158,7 @@ function CompletionToast({ onClose }) {
 }
 
 // ── Roadmap sidebar ───────────────────────────────────────────────────────────
-function RoadmapSidebar({ sections, sectionStatus, currentSection }) {
+function RoadmapSidebar({ sections, sectionStatus, currentSection, onSelectSection }) {
   const total = sections.length
   const doneCount = sectionStatus.filter(s => s === 'done').length
   const pct = total > 0 ? (doneCount / total) * 100 : 0
@@ -183,9 +187,21 @@ function RoadmapSidebar({ sections, sectionStatus, currentSection }) {
           const status = sectionStatus[i] // 'done' | 'current' | 'locked'
           const isCurrent = i === currentSection
           const isDone = status === 'done'
-          const isLocked = status === 'locked'
           return (
-            <div key={t.id || i} style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: i < sections.length - 1 ? 20 : 0, opacity: isLocked ? 0.45 : 1, transition: 'opacity 0.3s' }}>
+            <div
+              key={t.id || i}
+              onClick={() => onSelectSection?.(i)}
+              style={{
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 10,
+                marginBottom: i < sections.length - 1 ? 20 : 0,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+              title={`Jump to ${t.title}`}
+            >
               {/* Node dot */}
               <div style={{
                 position: 'absolute', left: -20, top: 3,
@@ -201,9 +217,17 @@ function RoadmapSidebar({ sections, sectionStatus, currentSection }) {
                 {isCurrent && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'white', animation: 'pulse-glow 1.4s ease-in-out infinite', display: 'block' }}/>}
               </div>
               {/* Label */}
-              <div style={{ fontSize: 12.5, lineHeight: 1.35, color: isCurrent ? 'var(--ink-900)' : isDone ? 'var(--success)' : 'var(--ink-500)', fontWeight: isCurrent || isDone ? 600 : 400, padding: '2px 10px', borderRadius: 999, background: isCurrent ? 'var(--peach-50)' : 'transparent', transition: 'all 0.3s' }}>
+              <div style={{
+                fontSize: 12.5,
+                lineHeight: 1.35,
+                color: isCurrent ? 'var(--ink-900)' : isDone ? 'var(--success)' : 'var(--ink-600)',
+                fontWeight: isCurrent || isDone ? 600 : 500,
+                padding: '3px 10px',
+                borderRadius: 999,
+                background: isCurrent ? 'var(--peach-50)' : 'transparent',
+                transition: 'all 0.2s',
+              }}>
                 {t.title}
-                {isLocked && <span style={{ marginLeft: 4, fontSize: 10 }}>🔒</span>}
               </div>
             </div>
           )
@@ -344,6 +368,10 @@ function ImmersivePillar({ textContent, moduleId }) {
           sections={tocSections}
           sectionStatus={sectionStatus}
           currentSection={Math.min(currentSection, total - 1)}
+          onSelectSection={(idx) => {
+            setCurrentSection(idx);
+            setHasFailed(false);
+          }}
         />
         <article>
           {isComplete ? (
@@ -357,12 +385,56 @@ function ImmersivePillar({ textContent, moduleId }) {
             </div>
           ) : (
             <>
+              {/* Section Header with forward/backward navigation */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <button className="icon-btn" onClick={() => currentSection > 0 && setCurrentSection(s => s - 1)} style={{ opacity: currentSection === 0 ? 0.3 : 1 }}><Ico.ArrowLeft/></button>
-                <span className="muted" style={{ fontSize: 12 }}>Section {currentSection + 1} of {total}</span>
-                <div style={{ width: 32 }}/>
+                <button
+                  className="icon-btn"
+                  onClick={() => currentSection > 0 && setCurrentSection(s => s - 1)}
+                  disabled={currentSection === 0}
+                  style={{ opacity: currentSection === 0 ? 0.3 : 1, cursor: currentSection === 0 ? 'not-allowed' : 'pointer' }}
+                  title="Previous Section"
+                >
+                  <Ico.ArrowLeft/>
+                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className="muted" style={{ fontSize: 13, fontWeight: 600 }}>Section {currentSection + 1} of {total}</span>
+                  <span style={{ fontSize: 11, background: 'var(--peach-50)', color: 'var(--peach-600)', padding: '2px 8px', borderRadius: 999, fontWeight: 700 }}>
+                    {tocSections[currentSection]?.title}
+                  </span>
+                </div>
+                <button
+                  className="icon-btn"
+                  onClick={() => currentSection < total - 1 && setCurrentSection(s => s + 1)}
+                  disabled={currentSection >= total - 1}
+                  style={{ opacity: currentSection >= total - 1 ? 0.3 : 1, cursor: currentSection >= total - 1 ? 'not-allowed' : 'pointer' }}
+                  title="Next Section"
+                >
+                  <Ico.ArrowRight/>
+                </button>
               </div>
-              <h2 className="h2" style={{ marginBottom: 16 }}>{currentLabel}</h2>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+                <h2 className="h2" style={{ margin: 0 }}>{currentLabel}</h2>
+                <ListenButton
+                  text={
+                    currentLabel + '. ' +
+                    c.sections
+                      .filter(s => {
+                        const activeTocId = tocSections[currentSection]?.id;
+                        if (!activeTocId) return true;
+                        if (s.id?.startsWith(activeTocId)) return true;
+                        const match = s.id?.match(/^[pq](\d+)/);
+                        if (match && parseInt(match[1], 10) === currentSection + 1) return true;
+                        return false;
+                      })
+                      .map(s => s.body || s.heading || '')
+                      .join('. ')
+                  }
+                  label="Listen Section"
+                  compact
+                />
+              </div>
+
               {c.sections.map(s => {
                 const activeTocId = tocSections[currentSection]?.id;
 
@@ -379,7 +451,11 @@ function ImmersivePillar({ textContent, moduleId }) {
                 }
 
                 // Filter out sections that do not belong to the current active TOC section
-                if (activeTocId && !s.id.startsWith(activeTocId)) return null;
+                const matchesId = activeTocId && s.id?.startsWith(activeTocId);
+                const numMatch = s.id?.match(/^[pq](\d+)/);
+                const matchesNum = numMatch && (parseInt(numMatch[1], 10) === currentSection + 1);
+
+                if (!matchesId && !matchesNum && activeTocId) return null;
 
                 if (s.kind === 'prose') return (
                   <section key={s.id} style={{ marginBottom: 24 }}>
@@ -407,26 +483,90 @@ function ImmersivePillar({ textContent, moduleId }) {
                     <div>
                       <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--ink-900)' }}>Not quite right.</p>
                       <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--ink-600)', lineHeight: 1.5 }}>
-                        Re-read the section above, then reset and try all the quizzes again from the beginning.
+                        Review the section above, then try the quiz again or explore other sections using the navigation arrows.
                       </p>
                     </div>
                   </div>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button
+                      onClick={handleReset}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 999, background: 'var(--error)', color: 'white', fontSize: 14, fontWeight: 600, cursor: 'pointer', border: 'none', transition: 'opacity 0.2s' }}
+                      onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+                      onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                    >
+                      ↺ Retry quiz
+                    </button>
+                    {currentSection < total - 1 && (
+                      <button
+                        onClick={() => { setHasFailed(false); setCurrentSection(s => s + 1); }}
+                        className="pill"
+                        style={{ padding: '8px 16px', fontSize: 13.5, fontWeight: 600 }}
+                      >
+                        Skip to next section →
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Bottom Section Navigator Buttons */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 32, paddingTop: 20, borderTop: '1px solid var(--ink-100)', flexWrap: 'wrap', gap: 12 }}>
+                <button
+                  type="button"
+                  className="pill"
+                  onClick={() => currentSection > 0 && setCurrentSection(s => s - 1)}
+                  disabled={currentSection === 0}
+                  style={{
+                    padding: '8px 16px',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    opacity: currentSection === 0 ? 0.35 : 1,
+                    cursor: currentSection === 0 ? 'not-allowed' : 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <Ico.ArrowLeft style={{ width: 14, height: 14 }}/> Previous Section
+                </button>
+
+                {currentSection < total - 1 ? (
                   <button
-                    onClick={handleReset}
-                    style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 999, background: 'var(--error)', color: 'white', fontSize: 14, fontWeight: 600, cursor: 'pointer', border: 'none', transition: 'opacity 0.2s' }}
-                    onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
-                    onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                    type="button"
+                    className="pill pill-primary"
+                    onClick={() => {
+                      setHasFailed(false);
+                      setCurrentSection(s => s + 1);
+                    }}
+                    style={{
+                      padding: '8px 20px',
+                      fontSize: 13.5,
+                      fontWeight: 700,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 8,
+                    }}
                   >
-                    ↺ Reset all quizzes
+                    Next Section: {tocSections[currentSection + 1]?.title} <Ico.ArrowRight style={{ width: 14, height: 14 }}/>
                   </button>
-                </div>
-              ) : (
-                /* Normal hint bar */
-                <div style={{ marginTop: 24, padding: '12px 16px', background: 'var(--peach-50)', borderRadius: 'var(--r-md)', fontSize: 13, color: 'var(--ink-700)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ color: 'var(--peach-500)' }}><Ico.Hint/></span>
-                  Answer the quiz correctly to unlock the next section.
-                </div>
-              )}
+                ) : (
+                  <button
+                    type="button"
+                    className="pill pill-primary"
+                    onClick={() => setShowToast(true)}
+                    style={{
+                      padding: '8px 20px',
+                      fontSize: 13.5,
+                      fontWeight: 700,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 8,
+                    }}
+                  >
+                    🏆 Topic Mastered!
+                  </button>
+                )}
+              </div>
             </>
           )}
         </article>
@@ -531,148 +671,38 @@ function SlidesPillar({ slides }) {
   )
 }
 
-// ── PILLAR 4: Audio (Web Speech API — zero API keys, zero cost) ───────────────
-function AudioPillar({ audioContent }) {
-  const [playing, setPlaying] = useState(false)
-  const [currentChapterIdx, setCurrentChapterIdx] = useState(0)
-  const [supported] = useState(() => typeof window !== 'undefined' && 'speechSynthesis' in window)
-  const uttRef = useRef(null)
+// ── PILLAR 4: Audio (Powered by Gnani Timbre v2.5 Voice Agent) ───────────────
+function AudioPillar({ audioContent, user }) {
+  const [voiceLang, setVoiceLang] = useState(getSavedVoiceLanguage)
 
   const title = audioContent?.title || 'Audio Lesson'
   const script = audioContent?.script || ''
-  const chapters = audioContent?.chapters || []
+  const rawChapters = audioContent?.chapters || []
 
-  // Clean script: strip [CHAPTER:...] markers for spoken text
-  const cleanScript = script.replace(/\[CHAPTER:[^\]]+\]/g, ' ').replace(/\s+/g, ' ').trim()
-
-  // Split script into chapter segments for chapter-level playback
-  const chapterSegments = useMemo(() => {
-    if (!script) return []
+  const chapters = useMemo(() => {
+    if (rawChapters.length > 0 && rawChapters[0].text) {
+      return rawChapters
+    }
+    if (!script) {
+      return [{ title: title || 'Lesson Overview', text: 'Welcome to this audio lesson powered by Gnani Timbre.' }]
+    }
     const parts = script.split(/\[CHAPTER:\s*(.+?)\]/g)
     const segs = []
     for (let i = 1; i < parts.length; i += 2) {
       segs.push({ title: parts[i].trim(), text: (parts[i + 1] || '').replace(/\s+/g, ' ').trim() })
     }
-    return segs.length > 0 ? segs : [{ title: 'Audio Lesson', text: cleanScript }]
-  }, [script])
-
-  const speakChapter = (idx) => {
-    if (!supported) return
-    window.speechSynthesis.cancel()
-    const seg = chapterSegments[idx]
-    if (!seg) return
-    const utt = new SpeechSynthesisUtterance(seg.text)
-    utt.rate = 0.92
-    utt.pitch = 1.0
-    utt.onend = () => {
-      const next = idx + 1
-      if (next < chapterSegments.length) {
-        setCurrentChapterIdx(next)
-        speakChapter(next)
-      } else {
-        setPlaying(false)
-        setCurrentChapterIdx(0)
-      }
-    }
-    utt.onerror = () => setPlaying(false)
-    uttRef.current = utt
-    window.speechSynthesis.speak(utt)
-  }
-
-  const handlePlay = () => {
-    if (!supported) return
-    speakChapter(currentChapterIdx)
-    setPlaying(true)
-  }
-
-  const handlePause = () => {
-    window.speechSynthesis.pause()
-    setPlaying(false)
-  }
-
-  const handleResume = () => {
-    window.speechSynthesis.resume()
-    setPlaying(true)
-  }
-
-  const handleStop = () => {
-    window.speechSynthesis.cancel()
-    setPlaying(false)
-    setCurrentChapterIdx(0)
-  }
-
-  const jumpToChapter = (idx) => {
-    window.speechSynthesis.cancel()
-    setCurrentChapterIdx(idx)
-    setPlaying(true)
-    speakChapter(idx)
-  }
-
-  useEffect(() => {
-    return () => { if (supported) window.speechSynthesis.cancel() }
-  }, [])
+    return segs.length > 0 ? segs : [{ title: title || 'Audio Lesson', text: script.replace(/\[CHAPTER:[^\]]+\]/g, ' ').trim() }]
+  }, [script, rawChapters, title])
 
   return (
-    <div style={{ padding: '28px 36px 40px', maxWidth: 720, margin: '0 auto' }}>
-      <div style={{ background: 'linear-gradient(180deg, var(--paper), var(--cream-deep))', borderRadius: 'var(--r-xl)', padding: 32, border: '1px solid var(--ink-100)', boxShadow: 'var(--shadow-md)', display: 'flex', flexDirection: 'column', gap: 20 }}>
-        {/* Visualiser */}
-        <div style={{ aspectRatio: '2.5', background: 'linear-gradient(135deg, var(--peach-100), var(--lav-100))', borderRadius: 'var(--r-lg)', display: 'grid', placeItems: 'center', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', gap: 4, height: '60%', alignItems: 'center' }}>
-            {[...Array(28)].map((_, i) => (
-              <span key={i} style={{ width: 4, background: 'linear-gradient(180deg, var(--peach-400), var(--lav-400))', borderRadius: 999, height: '30%', animation: 'audio-bounce 1s ease-in-out infinite alternate', animationDelay: `${i * 0.06}s`, animationPlayState: playing ? 'running' : 'paused', opacity: playing ? 1 : 0.35 }}/>
-            ))}
-          </div>
-        </div>
-
-        {/* Title */}
-        <div style={{ textAlign: 'center' }}>
-          <span className="eyebrow">Audio Lesson</span>
-          <h2 className="h2" style={{ marginTop: 6 }}>{title}</h2>
-          <p className="muted" style={{ fontSize: 14 }}>Powered by your browser · No API key needed</p>
-        </div>
-
-        {/* Current chapter */}
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', justifyContent: 'center', padding: '12px 18px', background: 'var(--lav-50)', borderRadius: 999, fontSize: 14, fontWeight: 500, color: 'var(--ink-700)', margin: '0 auto', maxWidth: '100%' }}>
-          <span style={{ color: 'var(--lav-500)', display: 'flex' }}><Ico.Audio/></span>
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {playing ? (chapterSegments[currentChapterIdx]?.title || 'Playing…') : 'Press play to begin'}
-          </span>
-        </div>
-
-        {/* Not supported warning */}
-        {!supported && (
-          <div style={{ textAlign: 'center', padding: '12px 16px', background: 'rgba(226,106,92,0.07)', borderRadius: 'var(--r-md)', fontSize: 13, color: 'var(--error)' }}>
-            Your browser does not support speech synthesis. Try Chrome or Edge.
-          </div>
-        )}
-
-        {/* Controls */}
-        <div style={{ display: 'flex', gap: 18, justifyContent: 'center', alignItems: 'center' }}>
-          <button className="icon-btn" onClick={() => jumpToChapter(Math.max(0, currentChapterIdx - 1))} disabled={!supported} title="Previous chapter"><Ico.ArrowLeft/></button>
-          <button
-            onClick={playing ? handlePause : (window.speechSynthesis?.paused ? handleResume : handlePlay)}
-            disabled={!supported}
-            style={{ width: 64, height: 64, borderRadius: '50%', background: supported ? 'var(--ink-900)' : 'var(--ink-200)', color: 'var(--cream)', display: 'grid', placeItems: 'center', boxShadow: 'var(--shadow-md)', cursor: supported ? 'pointer' : 'not-allowed', transition: 'transform 0.2s var(--ease-spring)' }}
-          >
-            {playing ? <Ico.Pause style={{ width: 22, height: 22 }}/> : <Ico.Play style={{ width: 22, height: 22 }}/>}
-          </button>
-          <button className="icon-btn" onClick={() => jumpToChapter(Math.min(chapterSegments.length - 1, currentChapterIdx + 1))} disabled={!supported} title="Next chapter"><Ico.ArrowRight/></button>
-        </div>
-
-        {/* Chapter list */}
-        {chapterSegments.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <div className="muted" style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Chapters</div>
-            {chapterSegments.map((ch, idx) => (
-              <button key={idx} onClick={() => jumpToChapter(idx)} disabled={!supported} style={{ display: 'flex', gap: 14, padding: '10px 14px', borderRadius: 'var(--r-md)', fontSize: 13.5, color: 'var(--ink-700)', textAlign: 'left', background: idx === currentChapterIdx && playing ? 'var(--peach-50)' : 'transparent', fontWeight: idx === currentChapterIdx && playing ? 600 : 400, cursor: supported ? 'pointer' : 'default', transition: 'background 0.2s ease', border: 'none', width: '100%' }}>
-                <span style={{ fontVariantNumeric: 'tabular-nums', color: 'var(--ink-300)', minWidth: 24, flexShrink: 0 }}>{idx + 1}.</span>
-                <span>{ch.title}</span>
-                {idx === currentChapterIdx && playing && <span style={{ marginLeft: 'auto', color: 'var(--peach-500)', fontSize: 11, fontWeight: 700 }}>▶ NOW</span>}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+    <div style={{ padding: '28px 36px 48px', maxWidth: 760, margin: '0 auto' }}>
+      <GnaniAudioPlayer
+        title={title}
+        chapters={chapters}
+        selectedLanguage={voiceLang}
+        onLanguageChange={setVoiceLang}
+        user={user}
+      />
     </div>
   )
 }
@@ -933,7 +963,8 @@ function formatTime(seconds) {
   return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`
 }
 
-function TestKnowledgePillar({ topic = 'Custom Syllabus', moduleId = null, sourceExcerpt = '', liveModule = null }) {
+function TestKnowledgePillar({ topic = 'Custom Syllabus', moduleId = null, sourceExcerpt = '', liveModule = null, user = null }) {
+  const [voiceLang, setVoiceLang] = useState(getSavedVoiceLanguage)
   const questions = useMemo(() => {
     const rawTest = liveModule?.mock_test
     if (!rawTest) return []
@@ -1144,49 +1175,43 @@ function TestKnowledgePillar({ topic = 'Custom Syllabus', moduleId = null, sourc
 
       {/* Question card */}
       <div style={{ background: 'var(--paper)', borderRadius: 'var(--r-lg)', border: '1px solid var(--ink-100)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
-        <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--ink-100)', display: 'flex', alignItems: 'center', gap: 12, background: 'linear-gradient(135deg, var(--lav-50), var(--cream))' }}>
-          <span style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--lav-200)', color: 'var(--lav-600)', display: 'grid', placeItems: 'center', fontSize: 14, fontWeight: 800, flexShrink: 0 }}>Q</span>
-          <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink-900)', flex: 1 }}>
-            {currentQuestion?.question}
-            {currentQuestion?.difficultyRating && (
-              <span style={{ display: 'inline-flex', gap: 2, alignItems: 'center', marginLeft: 12 }} title={`Difficulty: ${currentQuestion.difficultyRating} / 5 stars`}>
-                {[...Array(5)].map((_, i) => (
-                  <span key={i} style={{ color: i < currentQuestion.difficultyRating ? '#FFD700' : 'var(--ink-200)', fontSize: 13 }}>
-                    {i < currentQuestion.difficultyRating ? '★' : '☆'}
-                  </span>
-                ))}
-              </span>
-            )}
-          </span>
-          <span className="subject-chip">{currentQuestion?.marks}M</span>
+        <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--ink-100)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', background: 'linear-gradient(135deg, var(--lav-50), var(--cream))' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 260 }}>
+            <span style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--lav-200)', color: 'var(--lav-600)', display: 'grid', placeItems: 'center', fontSize: 14, fontWeight: 800, flexShrink: 0 }}>Q</span>
+            <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink-900)' }}>
+              {currentQuestion?.question}
+              {currentQuestion?.difficultyRating && (
+                <span style={{ display: 'inline-flex', gap: 2, alignItems: 'center', marginLeft: 12 }} title={`Difficulty: ${currentQuestion.difficultyRating} / 5 stars`}>
+                  {[...Array(5)].map((_, i) => (
+                    <span key={i} style={{ color: i < currentQuestion.difficultyRating ? '#FFD700' : 'var(--ink-200)', fontSize: 13 }}>
+                      {i < currentQuestion.difficultyRating ? '★' : '☆'}
+                    </span>
+                  ))}
+                </span>
+              )}
+            </span>
+            <ListenButton text={currentQuestion?.question} language={voiceLang} label="Listen" compact />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <LanguagePicker currentLang={voiceLang} onChange={setVoiceLang} user={user} compact />
+            <span className="subject-chip">{currentQuestion?.marks}M</span>
+          </div>
         </div>
 
         {/* Answer area */}
         <div style={{ padding: '20px 24px' }}>
-          <textarea
-            ref={textareaRef}
+          <VoiceAnswerInput
             value={answer}
-            onChange={e => handleTyping(e.target.value)}
-            onPaste={e => { e.preventDefault(); }}
+            onChange={handleTyping}
+            languageCode={voiceLang}
+            placeholder="Click Speak Answer to record in your chosen language, or type directly... Timer starts as you respond."
+            rows={6}
             disabled={step !== 'prompt'}
-            rows={8}
-            placeholder="Type your answer here... Timer starts when you begin typing."
-            style={{
-              width: '100%', resize: 'vertical', fontSize: 15, lineHeight: 1.7,
-              padding: '16px 20px', borderRadius: 'var(--r-md)',
-              border: '1.5px solid var(--ink-200)',
-              background: step !== 'prompt' ? 'var(--cream-deep)' : 'var(--paper)',
-              color: 'var(--ink-800)', fontFamily: 'Inter, sans-serif',
-              transition: 'border-color 0.3s, background 0.3s',
-              outline: 'none', boxSizing: 'border-box',
-            }}
-            onFocus={e => e.target.style.borderColor = 'var(--lav-400)'}
-            onBlur={e => e.target.style.borderColor = 'var(--ink-200)'}
           />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
             <span style={{ fontSize: 12, color: 'var(--ink-400)' }}>{answer.length} characters</span>
             {step === 'prompt' && (
-              <button className="pill pill-primary" onClick={handleSubmit} disabled={answer.trim().length < 10} style={{ opacity: answer.trim().length < 10 ? 0.5 : 1 }}>
+              <button className="pill pill-primary" onClick={handleSubmit} disabled={answer.trim().length < 5} style={{ opacity: answer.trim().length < 5 ? 0.5 : 1 }}>
                 <Ico.Sparkle/> Submit Answer
               </button>
             )}
@@ -1230,8 +1255,11 @@ function TestKnowledgePillar({ topic = 'Custom Syllabus', moduleId = null, sourc
 
             {/* Feedback */}
             {evaluationResult.feedback && (
-              <div style={{ padding: '14px 18px', background: 'var(--cream-deep)', borderRadius: 'var(--r-md)', borderLeft: `3px solid ${rubricEntry.color}`, fontSize: 14, color: 'var(--ink-700)', lineHeight: 1.65 }}>
-                <strong style={{ color: 'var(--ink-900)' }}>Feedback:</strong> {evaluationResult.feedback}
+              <div style={{ padding: '14px 18px', background: 'var(--cream-deep)', borderRadius: 'var(--r-md)', borderLeft: `3px solid ${rubricEntry.color}`, fontSize: 14, color: 'var(--ink-700)', lineHeight: 1.65, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                <div>
+                  <strong style={{ color: 'var(--ink-900)' }}>Feedback:</strong> {evaluationResult.feedback}
+                </div>
+                <ListenButton text={evaluationResult.feedback} language={voiceLang} label="Listen Feedback" compact />
               </div>
             )}
 
@@ -1306,9 +1334,16 @@ function AIChatbot({ topic, moduleId }) {
     return !hasTopicWord && !hasRelated && text.length > 12
   }
 
-  // Fallback offline responses
+  // Fallback offline responses if network drops
   const getOfflineBotResponse = (userMsg) => {
     const lower = userMsg.toLowerCase()
+    const topicLower = (topic || 'Photosynthesis').toLowerCase()
+
+    // Off-topic check
+    if (lower.includes('linked list') || lower.includes('algorithm') || lower.includes('sorting') || lower.includes('quicksort') || lower.includes('binary tree') || lower.includes('python') || lower.includes('javascript') || lower.includes('sql') || lower.includes('database')) {
+      return `Please ask questions related to ${topic} only.`
+    }
+
     if (lower.includes('chlorophyll') || lower.includes('green')) return 'Chlorophyll is the pigment inside chloroplasts that absorbs light — mainly red and blue wavelengths — and converts it into chemical energy. That\'s why leaves look green: chlorophyll reflects green light back to your eyes.'
     if (lower.includes('atp')) return 'ATP (adenosine triphosphate) is the energy currency of the cell. In photosynthesis, the light reactions generate ATP using sunlight, and the Calvin cycle spends that ATP to build glucose.'
     if (lower.includes('calvin') || lower.includes('cycle')) return 'The Calvin Cycle happens in the stroma of the chloroplast. It uses CO₂, ATP, and NADPH to build glucose through a 3-step cycle: fixation → reduction → regeneration of RuBP.'
@@ -1316,57 +1351,36 @@ function AIChatbot({ topic, moduleId }) {
     if (lower.includes('where') || lower.includes('chloroplast')) return 'Photosynthesis happens inside the chloroplast. Light reactions occur on the thylakoid membranes; the Calvin Cycle runs in the stroma.'
     if (lower.includes('why') || lower.includes('important')) return 'Photosynthesis is the foundation of almost all food chains on Earth. It converts solar energy into chemical energy (glucose), which fuels nearly all living things — including us.'
     if (lower.includes('glucose') || lower.includes('sugar')) return 'Glucose (C₆H₁₂O₆) is the main output of photosynthesis. Plants use it for energy and as a building block for cellulose, starch, and other organic molecules.'
-    return `Regarding ${topic}: the process involves converting light energy into chemical energy stored as glucose. Could you be more specific about which part you'd like me to clarify?`
+    return `In ${topic}, autotrophic plants capture solar radiation using chlorophyll inside chloroplasts, converting carbon dioxide and water into glucose and oxygen (6CO₂ + 6H₂O + light → C₆H₁₂O₆ + 6O₂).`
   }
 
   const sendMessage = () => {
     const text = input.trim()
     if (!text || thinking) return
 
-    if (isOffTopic(text)) {
-      const newStrikes = strikes + 1
-      setStrikes(newStrikes)
-      setMessages(prev => [
-        ...prev,
-        { role: 'user', text },
-        {
-          role: 'bot',
-          text: newStrikes >= 2
-            ? `⛔ I can only discuss **${topic}** in this session. I've noticed this is the second off-topic question — I'm going to stay focused. What would you like to know about ${topic}?`
-            : `⚠️ I'm scoped to **${topic}** only! Let's keep our focus here. (1 of 2 warnings) — Try asking about the process, molecules, or stages involved.`,
-          isWarning: true,
-        }
-      ])
-      setInput('')
-      return
-    }
-
     setMessages(prev => [...prev, { role: 'user', text }])
     setInput('')
     setThinking(true)
 
-    // Call real RAG backend endpoint if moduleId exists, otherwise fallback to offline responses
-    if (moduleId) {
-      const historyPayload = messages
-        .filter(m => !m.isWarning)
-        .map(m => ({ role: m.role === 'user' ? 'user' : 'bot', content: m.text }));
+    const historyPayload = messages
+      .filter(m => !m.isWarning)
+      .map(m => ({ role: m.role === 'user' ? 'user' : 'bot', content: m.text }));
 
-      api.chat(moduleId, text, historyPayload)
-        .then(res => {
-          setMessages(prev => [...prev, { role: 'bot', text: res.reply }])
-          setThinking(false)
-        })
-        .catch(err => {
-          console.warn('[AIChatbot] RAG chat failed, falling back to offline answer:', err.message);
-          setMessages(prev => [...prev, { role: 'bot', text: getOfflineBotResponse(text) }])
-          setThinking(false)
-        });
-    } else {
-      setTimeout(() => {
+    const targetModuleId = moduleId || 'demo-photosynthesis';
+
+    api.chat(targetModuleId, text, historyPayload, topic)
+      .then(res => {
+        setMessages(prev => [
+          ...prev,
+          { role: 'bot', text: res.reply, isWarning: res.isOffTopic }
+        ])
+        setThinking(false)
+      })
+      .catch(err => {
+        console.warn('[AIChatbot] RAG chat network fallback:', err.message);
         setMessages(prev => [...prev, { role: 'bot', text: getOfflineBotResponse(text) }])
         setThinking(false)
-      }, 800 + Math.random() * 500);
-    }
+      });
   }
 
   const handleKey = (e) => {
@@ -1500,12 +1514,16 @@ function GeneratingPlaceholder({ mediaType }) {
 }
 
 // ── Learning Hub ──────────────────────────────────────────────────────────────
-export default function LearningHub({ module, persona, onChangePersona, onAccountSettings, onLogout, onBack, dark, onToggleDark, user }) {
+export default function LearningHub({ module, initialTab, persona, onChangePersona, onAccountSettings, onLogout, onBack, dark, onToggleDark, user }) {
   // Live module state — updates as background generation completes
   const [liveModule, setLiveModule] = useState(module)
   const [moduleStatus, setModuleStatus] = useState(module?.status || 'complete')
   const isMockTestFirst = module?.mode === 'mocktest_first' || liveModule?.mode === 'mocktest_first' || module?.topic === 'Custom Syllabus Exam'
-  const [tab, setTab] = useState(isMockTestFirst ? 'mocktest' : 'text')
+  const [tab, setTab] = useState(initialTab || (isMockTestFirst ? 'mocktest' : 'text'))
+
+  useEffect(() => {
+    if (initialTab) setTab(initialTab)
+  }, [initialTab])
 
   // ── DYNAMIC LOCAL STUDY MATERIAL GENERATION (Client-side, No API keys) ─────
   const localTextContent = useMemo(() => {
@@ -1733,8 +1751,25 @@ export default function LearningHub({ module, persona, onChangePersona, onAccoun
       <TopBar persona={persona} onChangePersona={onChangePersona} onAccountSettings={onAccountSettings} onLogout={onLogout} dark={dark} onToggleDark={onToggleDark} user={user}/>
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 32px 16px', display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
         <button className="link-btn" onClick={onBack}><Ico.ArrowLeft/> All modules</button>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <h2 style={{ fontSize: 'clamp(28px,3.4vw,40px)', fontWeight: 700, letterSpacing: '-0.025em', margin: 0 }}>{headerTitle}</h2>
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '4px 10px',
+              borderRadius: 999,
+              fontSize: 12,
+              fontWeight: 700,
+              background: 'var(--peach-50)',
+              color: 'var(--peach-600)',
+              border: '1px solid var(--peach-200)',
+            }}
+            title="AMI Voice enabled: speak your answers and listen to every lesson powered by Gnani Prisma & Timbre"
+          >
+            🎙️ AMI Voice
+          </span>
           {isGenerating && (
             <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center', padding: '4px 12px', background: 'var(--peach-50)', borderRadius: 999, fontSize: 12, color: 'var(--peach-500)', fontWeight: 600, border: '1px solid var(--peach-100)', flexShrink: 0 }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--peach-400)', animation: 'pulse-glow 1.4s ease-in-out infinite', display: 'block' }}/>
@@ -1754,7 +1789,7 @@ export default function LearningHub({ module, persona, onChangePersona, onAccoun
           )}
           {tab === 'audio' && (isGenerating || !hasAudio
             ? <GeneratingPlaceholder mediaType="Audio Lesson"/>
-            : <AudioPillar audioContent={liveModule?.audio?.chapters?.length > 0 ? liveModule.audio : localAudioContent}/>
+            : <AudioPillar audioContent={liveModule?.audio?.chapters?.length > 0 ? liveModule.audio : localAudioContent} user={user}/>
           )}
           {tab === 'mind' && (isGenerating || !hasMindmap
             ? <GeneratingPlaceholder mediaType="Mindmap"/>
@@ -1764,6 +1799,7 @@ export default function LearningHub({ module, persona, onChangePersona, onAccoun
             <MockTestPillar 
               moduleId={moduleId} 
               liveModule={liveModule} 
+              user={user}
               onUpdateMockTest={async (mockTest) => {
                 if (mockTest && mockTest.moduleId) {
                   try {
@@ -1798,7 +1834,7 @@ export default function LearningHub({ module, persona, onChangePersona, onAccoun
               }}
             />
           )}
-          {tab === 'test' && <TestKnowledgePillar topic={c.title} moduleId={moduleId} sourceExcerpt={sourceExcerpt} liveModule={liveModule}/>}
+          {tab === 'test' && <TestKnowledgePillar topic={c.title} moduleId={moduleId} sourceExcerpt={sourceExcerpt} liveModule={liveModule} user={user}/>}
         </div>
       </div>
 

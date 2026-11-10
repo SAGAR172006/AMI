@@ -23,6 +23,7 @@ export const config = {
     .filter(Boolean),
   unsplashKey: process.env.UNSPLASH_ACCESS_KEY || null,
   serpapiKey: process.env.SERPAPI_KEY || null,
+  gnaniApiKey: process.env.GNANI_API_KEY || '',
 };
 
 if (config.geminiKeys.length === 0) {

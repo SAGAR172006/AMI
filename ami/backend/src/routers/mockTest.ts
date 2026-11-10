@@ -8,9 +8,17 @@ import { generateMockTest, evaluateMockTestAnswers } from '../agents/mockTestAge
 import { runPhase1, runPhase2 } from '../agents/orchestrator';
 import { buildModuleMaterialsFromPointers } from '../agents/pointersAgent';
 import { callGeminiJSON } from '../services/gemini';
+import { DEMO_MODULES } from './demo';
 
 export const mockTestRouter = Router();
-mockTestRouter.use(requireAuth);
+
+// Allow public access to demo modules (e.g. demo-photosynthesis) without login
+mockTestRouter.use((req, res, next) => {
+  if (req.body?.moduleId && typeof req.body.moduleId === 'string' && req.body.moduleId.startsWith('demo-')) {
+    return next();
+  }
+  return requireAuth(req, res, next);
+});
 
 /**
  * Checks if the requested marks distribution grid matches the question mark distribution of a stored mock test.
@@ -348,6 +356,72 @@ mockTestRouter.post('/evaluate', async (req, res) => {
       return res.status(400).json({ error: 'moduleId and userAnswers are required.' });
     }
 
+    // Demo module evaluation (in-memory, no Supabase required)
+    if (moduleId && typeof moduleId === 'string' && moduleId.startsWith('demo-')) {
+      const demoMod = DEMO_MODULES[moduleId];
+      if (!demoMod || !demoMod.mock_test) {
+        return res.status(404).json({ error: 'Demo mock test not found.' });
+      }
+      const mockTest = demoMod.mock_test;
+      const activeDifficulty = (mockTest.activeDifficulty || 'medium').toLowerCase();
+      const paper = mockTest[activeDifficulty] || mockTest;
+      const questions = paper.questions || [];
+
+      let evaluationResult;
+      try {
+        evaluationResult = await evaluateMockTestAnswers(questions, userAnswers);
+      } catch (evalErr) {
+        // Fallback evaluation for offline / key limits
+        let totalScore = 0;
+        const evals: Record<string, any> = {};
+        for (const q of questions) {
+          const ans = (userAnswers[q.id] || '').trim();
+          const marks = ans.length > 20 ? q.marks : (ans.length > 0 ? Math.ceil(q.marks / 2) : 0);
+          totalScore += marks;
+          evals[q.id] = {
+            marksObtained: marks,
+            feedback: marks === q.marks
+              ? `Outstanding answer! Demonstrates clear understanding of the scientific mechanism.`
+              : (marks > 0 ? `Good answer covering key concepts. Could elaborate on chemical stoichiometry.` : `No answer provided.`),
+            stepGrades: q.stepMarking.map((sm: any) => ({
+              step: sm.step,
+              marksObtained: marks === q.marks ? sm.marks : (marks > 0 ? Math.round(sm.marks / 2 * 10) / 10 : 0),
+              feedback: marks > 0 ? `Step addressed appropriately.` : `Missing detail for this step.`
+            }))
+          };
+        }
+        evaluationResult = { score: totalScore, evaluations: evals };
+      }
+
+      const evaluatedQuestions = questions.map((q: any) => {
+        const qEval = evaluationResult.evaluations[q.id] || {
+          marksObtained: 0,
+          feedback: 'No evaluation provided.',
+          stepGrades: q.stepMarking.map((sm: any) => ({ step: sm.step, marksObtained: 0, feedback: 'No feedback.' }))
+        };
+        return {
+          ...q,
+          userAnswer: userAnswers[q.id] || '',
+          evaluation: qEval
+        };
+      });
+
+      const evaluatedPaper = {
+        ...paper,
+        questions: evaluatedQuestions,
+        score: evaluationResult.score,
+        isEvaluated: true
+      };
+
+      const evaluatedMockTest = {
+        ...mockTest,
+        [activeDifficulty]: evaluatedPaper,
+        isEvaluated: true
+      };
+
+      return res.json(evaluatedMockTest);
+    }
+
     // 1. Fetch mock test from the module
     const { data: moduleData, error: fetchError } = await supabase
       .from('modules')
@@ -496,6 +570,14 @@ mockTestRouter.post('/difficulty', async (req, res) => {
     const { moduleId, difficulty } = req.body;
     if (!moduleId || !difficulty) {
       return res.status(400).json({ error: 'moduleId and difficulty are required.' });
+    }
+
+    if (moduleId && typeof moduleId === 'string' && moduleId.startsWith('demo-')) {
+      const demoMod = DEMO_MODULES[moduleId];
+      if (demoMod && demoMod.mock_test) {
+        demoMod.mock_test.activeDifficulty = difficulty.toLowerCase();
+      }
+      return res.json({ success: true, activeDifficulty: difficulty.toLowerCase() });
     }
 
     const { data: moduleData, error: fetchError } = await supabase

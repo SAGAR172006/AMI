@@ -146,8 +146,8 @@ async function callWithKey(
 
   const { client, index, release } = await acquireKey();
 
-  // Define our model fallback chain with active, verified 2026 models
-  const models = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-3.5-flash', 'gemini-flash-latest'];
+  // Define our model fallback chain with active, verified models
+  const models = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-3.8-flash', 'gemini-flash-latest'];
   const modelChain = models.includes(modelName)
     ? [modelName, ...models.filter(m => m !== modelName)]
     : [modelName, ...models];
@@ -178,6 +178,11 @@ async function callWithKey(
         || errStr.includes('429')
         || errStr.includes('RESOURCE_EXHAUSTED');
       
+      const isUnavailable = err?.status === 503
+        || errStr.includes('503')
+        || errStr.includes('Service Unavailable')
+        || errStr.includes('high demand');
+
       const isNetworkError = errStr.includes('fetch failed')
         || errStr.includes('ENOTFOUND')
         || errStr.includes('ETIMEDOUT')
@@ -192,9 +197,19 @@ async function callWithKey(
         || (errStr.includes('403') && errStr.includes('Forbidden'))
         || err?.status === 403;
 
-      if (isQuota) {
-        console.warn(`[Gemini] Key ${index} hit 429 quota for model ${activeModel}. Trying next model in fallback chain...`);
+      const isModelNotFound = err?.status === 404
+        || errStr.includes('404')
+        || errStr.includes('not found')
+        || errStr.includes('no longer available');
+
+      if (isQuota || isUnavailable) {
+        console.warn(`[Gemini] Key ${index} hit ${isQuota ? '429 quota' : '503 high demand'} for model ${activeModel}. Trying next model in fallback chain...`);
         continue; // Try next model on the same key
+      }
+
+      if (isModelNotFound) {
+        console.warn(`[Gemini] Model ${activeModel} not found or retired (404). Trying next model in fallback chain...`);
+        continue;
       }
 
       if (isLeakedOrInvalid) {
@@ -226,19 +241,19 @@ async function callWithKey(
   return callWithKey(prompt, modelName, visionData, _retryCount + 1);
 }
 
-export async function callGemini(prompt: string, modelName = 'gemini-2.0-flash'): Promise<string> {
+export async function callGemini(prompt: string, modelName = 'gemini-2.5-flash'): Promise<string> {
   return callWithKey(prompt, modelName);
 }
 
-export async function callGeminiSlides(prompt: string, modelName = 'gemini-2.0-flash'): Promise<string> {
+export async function callGeminiSlides(prompt: string, modelName = 'gemini-2.5-flash'): Promise<string> {
   return callWithKey(prompt, modelName);
 }
 
-export async function callGeminiForTest(prompt: string, modelName = 'gemini-2.0-flash'): Promise<string> {
+export async function callGeminiForTest(prompt: string, modelName = 'gemini-2.5-flash'): Promise<string> {
   return callWithKey(prompt, modelName);
 }
 
-export async function callGeminiForChat(prompt: string, modelName = 'gemini-2.0-flash'): Promise<string> {
+export async function callGeminiForChat(prompt: string, modelName = 'gemini-2.5-flash'): Promise<string> {
   return callWithKey(prompt, modelName);
 }
 

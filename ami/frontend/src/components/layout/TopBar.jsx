@@ -12,9 +12,9 @@ function BrandMark({ size = 32 }) {
   )
 }
 
-export function Brand({ tag = 'EXPERIMENT' }) {
+export function Brand({ tag = 'VOICE' }) {
   return (
-    <div className="brand">
+    <div className="brand" title="AMI Voice · Powered by Gnani AI">
       <BrandMark/>
       <span>AMI</span>
       {tag && <span className="brand-tag">{tag}</span>}

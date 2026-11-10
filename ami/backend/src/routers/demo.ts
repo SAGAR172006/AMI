@@ -4,7 +4,7 @@ export const demoRouter = Router();
 
 // ── Full demo content — served directly from memory, no Supabase needed ──────
 
-const DEMO_MODULES: Record<string, any> = {
+export const DEMO_MODULES: Record<string, any> = {
 
   'demo-photosynthesis': {
     id: 'demo-photosynthesis',
@@ -17,6 +17,119 @@ const DEMO_MODULES: Record<string, any> = {
       sourceTitle: 'OpenStax Biology 2e — Chapter 8',
       sourceExcerpt: 'Photosynthesis is essential to all life on earth. It is the only biological process that captures energy from outer space (sunlight) and converts it into chemical energy in the form of glucose. The general equation is: 6CO₂ + 6H₂O + light → C₆H₁₂O₆ + 6O₂. The process occurs in two stages inside chloroplasts.',
       sourceUrl: null,
+    },
+    mock_test: {
+      topic: 'Photosynthesis',
+      maxMarks: 12,
+      activeDifficulty: 'medium',
+      instructions: 'Answer each question thoroughly. You can speak your answers in any Indic language (e.g. Hinglish or Hindi) using Gnani Prisma STT, and listen to questions and grader feedback using Gnani Timbre TTS.',
+      isEvaluated: false,
+      score: 0,
+      medium: {
+        maxMarks: 12,
+        score: 0,
+        isEvaluated: false,
+        questions: [
+          {
+            id: 'q1',
+            marks: 3,
+            difficultyRating: 2,
+            question: 'What is photosynthesis? State its balanced overall chemical equation and identify the organelle where it occurs.',
+            suggestedAnswer: 'Photosynthesis is the biological process by which autotrophic plants convert light energy into chemical energy stored in glucose. The balanced chemical equation is 6CO₂ + 6H₂O + light energy → C₆H₁₂O₆ + 6O₂. It takes place primarily inside the chloroplasts of plant cells.',
+            stepMarking: [
+              { step: 'Definition of photosynthesis as converting solar energy to chemical energy in glucose', marks: 1 },
+              { step: 'Accurate balanced chemical equation (6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂)', marks: 1 },
+              { step: 'Identification of chloroplasts (and thylakoids/stroma) as the site of reaction', marks: 1 }
+            ]
+          },
+          {
+            id: 'q2',
+            marks: 4,
+            difficultyRating: 3,
+            question: 'Explain the fundamental differences between the light-dependent reactions and the Calvin cycle (light-independent reactions).',
+            suggestedAnswer: 'Light-dependent reactions occur in the thylakoid membranes where chlorophyll absorbs sunlight to split water (photolysis), releasing oxygen and synthesizing ATP and NADPH. In contrast, the Calvin cycle takes place in the stroma, utilizing the ATP and NADPH generated in the first stage to fix atmospheric CO₂ into carbohydrates like G3P and glucose without requiring direct sunlight.',
+            stepMarking: [
+              { step: 'Contrast location: Thylakoid membranes vs Chloroplast stroma', marks: 1 },
+              { step: 'Contrast energy inputs: Sunlight and water photolysis vs Chemical energy (ATP/NADPH)', marks: 1.5 },
+              { step: 'Contrast primary outputs: Oxygen, ATP, NADPH vs G3P and Glucose', marks: 1.5 }
+            ]
+          },
+          {
+            id: 'q3',
+            marks: 5,
+            difficultyRating: 4,
+            question: 'Describe the three key stages of the Calvin cycle (Fixation, Reduction, Regeneration) and explain why six turns of the cycle are required to produce one net glucose molecule.',
+            suggestedAnswer: 'The Calvin cycle consists of: 1) Carbon Fixation: The enzyme RuBisCO catalyzes the addition of CO₂ to 5-carbon RuBP, producing 3-PGA. 2) Reduction: ATP and NADPH convert 3-PGA into glyceraldehyde-3-phosphate (G3P). 3) Regeneration: ATP is used to rearrange remaining G3P molecules back into RuBP to continue the cycle. Because each turn fixes only one carbon atom from one CO₂ molecule and glucose is a 6-carbon hexose (C₆H₁₂O₆), six full turns of the Calvin cycle are required to fix six carbons and yield the two surplus G3P molecules needed to synthesize one glucose molecule.',
+            stepMarking: [
+              { step: 'Accurately explain Carbon Fixation by RuBisCO converting RuBP + CO₂ to 3-PGA', marks: 1.5 },
+              { step: 'Explain Reduction phase utilizing ATP and NADPH to produce G3P', marks: 1.5 },
+              { step: 'Explain Regeneration phase reforming RuBP to maintain the cycle', marks: 1 },
+              { step: 'Explain stoichiometry: 6 turns fixing 6 CO₂ molecules produce 2 surplus G3P for 1 glucose', marks: 1 }
+            ]
+          }
+        ]
+      },
+      easy: {
+        maxMarks: 6,
+        score: 0,
+        isEvaluated: false,
+        questions: [
+          {
+            id: 'q_easy_1',
+            marks: 2,
+            difficultyRating: 1,
+            question: 'Name the green pigment in plants that absorbs sunlight and mention which gas is released as a byproduct of photosynthesis.',
+            suggestedAnswer: 'Chlorophyll is the green pigment in chloroplasts that absorbs sunlight. Oxygen (O₂) gas is released as a byproduct from the splitting of water.',
+            stepMarking: [
+              { step: 'Identification of Chlorophyll pigment', marks: 1 },
+              { step: 'Identification of Oxygen (O₂) gas released', marks: 1 }
+            ]
+          },
+          {
+            id: 'q_easy_2',
+            marks: 4,
+            difficultyRating: 2,
+            question: 'What are the two main stages of photosynthesis, and in which parts of the chloroplast do they take place?',
+            suggestedAnswer: 'The two main stages are the light-dependent reactions (which occur in the thylakoid membranes) and the light-independent reactions or Calvin cycle (which occurs in the stroma).',
+            stepMarking: [
+              { step: 'Identify Light-dependent reactions and location (thylakoid)', marks: 2 },
+              { step: 'Identify Calvin cycle / dark reactions and location (stroma)', marks: 2 }
+            ]
+          }
+        ]
+      },
+      hard: {
+        maxMarks: 15,
+        score: 0,
+        isEvaluated: false,
+        questions: [
+          {
+            id: 'q_hard_1',
+            marks: 7,
+            difficultyRating: 5,
+            question: 'Analyze the dual carboxylase and oxygenase activity of RuBisCO. How does photorespiration lead to energetic waste, and how do C4 plants circumvent this?',
+            suggestedAnswer: 'RuBisCO can bind O₂ instead of CO₂, initiating photorespiration which produces 2-phosphoglycolate, a toxic metabolite that requires ATP to salvage without producing sugar. C4 plants use PEP carboxylase in mesophyll cells to fix CO₂ into 4-carbon oxaloacetate, transporting malate into bundle-sheath cells (Kranz anatomy) where high CO₂ concentration outcompetes oxygen binding.',
+            stepMarking: [
+              { step: 'Explanation of RuBisCO oxygenase activity forming 2-phosphoglycolate', marks: 2 },
+              { step: 'Energetic cost and loss of fixed carbon in photorespiration', marks: 2 },
+              { step: 'C4 Kranz anatomy and spatial separation mechanism using PEP carboxylase', marks: 3 }
+            ]
+          },
+          {
+            id: 'q_hard_2',
+            marks: 8,
+            difficultyRating: 5,
+            question: 'Trace the path of electron transfer from Photosystem II through Photosystem I (Z-scheme) and explain how the proton gradient powers ATP synthesis.',
+            suggestedAnswer: 'P680 in PSII absorbs light, exciting electrons that transfer to plastoquinone, the cytochrome b6f complex, and plastocyanin, which delivers electrons to P700 in PSI. The electron transport chain pumps protons into the thylakoid lumen, creating an electrochemical gradient (chemiosmosis). Protons pass through ATP synthase into the stroma, generating ATP, while ferredoxin-NADP+ reductase at PSI produces NADPH.',
+            stepMarking: [
+              { step: 'P680 photoexcitation and photolysis of water in PSII', marks: 2 },
+              { step: 'Electron transport through Cytochrome b6f and Plastocyanin to PSI', marks: 2 },
+              { step: 'Establishment of proton electrochemical gradient across thylakoid lumen', marks: 2 },
+              { step: 'Chemiosmotic ATP synthesis via ATP synthase and NADPH formation', marks: 2 }
+            ]
+          }
+        ]
+      }
     },
     textContent: {
       title: 'Photosynthesis & the Carbon Cycle',

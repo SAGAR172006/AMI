@@ -109,7 +109,7 @@ function HeroSearch({ onSubmit }) {
   )
 }
 
-export default function LandingPage({ onStart, onUpload, onLogin, intensity = 1 }) {
+export default function LandingPage({ onStart, onUpload, onLogin, intensity = 1, onDemoLaunch }) {
   return (
     <div style={{ minHeight: '100vh', position: 'relative', background: 'var(--cream)', overflow: 'hidden' }}>
       <PeachWaves intensity={intensity}/>
@@ -122,9 +122,15 @@ export default function LandingPage({ onStart, onUpload, onLogin, intensity = 1 
         </div>
       </div>
 
-      <div style={{ position: 'relative', zIndex: 4, display: 'grid', gridTemplateColumns: '1.2fr 1fr', alignItems: 'center', gap: 60, padding: '40px 56px 80px', maxWidth: 1400, margin: '0 auto', minHeight: 'calc(100vh - 220px)' }}>
+      <div style={{ position: 'relative', zIndex: 4, display: 'grid', gridTemplateColumns: '1.2fr 1fr', alignItems: 'center', gap: 60, padding: '40px 56px 60px', maxWidth: 1400, margin: '0 auto', minHeight: 'calc(100vh - 280px)' }}>
         <div className="stagger" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <span className="eyebrow">A new kind of textbook</span>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 14px', borderRadius: 999, background: 'var(--peach-50)', border: '1.5px solid var(--peach-200)', width: 'fit-content', boxShadow: 'var(--shadow-sm)' }}>
+            <span style={{ fontSize: 14 }}>🎙️</span>
+            <span style={{ fontSize: 12.5, fontWeight: 750, color: 'var(--peach-600)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              AMI Voice · Powered by Gnani AI
+            </span>
+            <span style={{ fontSize: 11, background: 'var(--peach-500)', color: '#fff', padding: '2px 7px', borderRadius: 999, fontWeight: 700 }}>NEW</span>
+          </div>
           <h1 className="h1">Re-imagining<br/>textbooks for<br/>every learner.</h1>
           <p className="body" style={{ maxWidth: 480, fontSize: 18 }}>
             AMI transforms any topic — or your own PDF — into immersive text, narrated slides, audio lessons, and interactive mindmaps. Tailored to how <em>you</em> learn.
@@ -136,13 +142,99 @@ export default function LandingPage({ onStart, onUpload, onLogin, intensity = 1 
         </div>
       </div>
 
-      <div style={{ position: 'relative', zIndex: 4, display: 'flex', gap: 24, alignItems: 'center', padding: '0 56px 32px', flexWrap: 'wrap' }}>
+      {/* Highlight Section: AMI Voice */}
+      <div style={{ position: 'relative', zIndex: 4, maxWidth: 1400, margin: '0 auto', padding: '0 56px 40px', width: '100%' }}>
+        <div style={{ background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.95), var(--peach-50))', border: '1.5px solid var(--peach-200)', borderRadius: 'var(--r-xl)', padding: '28px 36px', boxShadow: 'var(--shadow-md)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24, alignItems: 'center' }}>
+          <div>
+            <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', color: 'var(--peach-500)', letterSpacing: '0.08em' }}>Voice-First Layer</span>
+            <h3 style={{ fontSize: 22, fontWeight: 800, margin: '4px 0 8px', color: 'var(--ink-900)' }}>
+              Speak your answers, listen to every lesson.
+            </h3>
+            <p style={{ fontSize: 14, color: 'var(--ink-600)', lineHeight: 1.6, margin: 0 }}>
+              Genuinely powered by <strong>Gnani Prisma (STT)</strong> and <strong>Gnani Timbre (TTS)</strong>. Answer mock tests in 11 Indic languages (including Hinglish and code-mixed speech), verify your transcript, and hear personalized step-by-step feedback read aloud.
+            </p>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, flex: 1, minWidth: 260 }}>
+            {/* STT Tile with arrow */}
+            <div
+              onClick={() => onDemoLaunch ? onDemoLaunch('demo-photosynthesis', 'mocktest') : onStart('Photosynthesis')}
+              role="button"
+              tabIndex={0}
+              className="voice-feature-card"
+              style={{
+                background: 'var(--paper)',
+                padding: '16px 20px',
+                borderRadius: 'var(--r-lg)',
+                border: '1.5px solid var(--ink-100)',
+                boxShadow: 'var(--shadow-sm)',
+                cursor: 'pointer',
+                transition: 'all 0.25s var(--ease-organic)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--lav-500)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Speech-to-Text</div>
+                <div style={{ fontSize: 16, fontWeight: 750, color: 'var(--ink-900)', marginTop: 2 }}>Gnani Prisma v3.0</div>
+                <div style={{ fontSize: 12, color: 'var(--ink-400)', marginTop: 2 }}>Auto-detects 11 Indic languages & Hinglish</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, borderTop: '1px solid var(--ink-100)', color: 'var(--lav-500)', fontSize: 12.5, fontWeight: 650 }}>
+                <span>Try answering in Photosynthesis demo</span>
+                <span style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--lav-50)', border: '1px solid var(--lav-200)', display: 'grid', placeItems: 'center', color: 'var(--lav-500)', flexShrink: 0, transition: 'transform 0.2s ease' }}>
+                  <Ico.ArrowRight style={{ width: 14, height: 14 }}/>
+                </span>
+              </div>
+            </div>
+
+            {/* TTS Tile with arrow */}
+            <div
+              onClick={() => onDemoLaunch ? onDemoLaunch('demo-photosynthesis', 'audio') : onStart('Photosynthesis')}
+              role="button"
+              tabIndex={0}
+              className="voice-feature-card"
+              style={{
+                background: 'var(--paper)',
+                padding: '16px 20px',
+                borderRadius: 'var(--r-lg)',
+                border: '1.5px solid var(--ink-100)',
+                boxShadow: 'var(--shadow-sm)',
+                cursor: 'pointer',
+                transition: 'all 0.25s var(--ease-organic)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--peach-500)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Text-to-Speech</div>
+                <div style={{ fontSize: 16, fontWeight: 750, color: 'var(--ink-900)', marginTop: 2 }}>Gnani Timbre v2.5</div>
+                <div style={{ fontSize: 12, color: 'var(--ink-400)', marginTop: 2 }}>Natural voice actors (Kaveri, Nalini, Poorvi)</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, borderTop: '1px solid var(--ink-100)', color: 'var(--peach-500)', fontSize: 12.5, fontWeight: 650 }}>
+                <span>Listen to Photosynthesis audio lesson</span>
+                <span style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--peach-50)', border: '1px solid var(--peach-200)', display: 'grid', placeItems: 'center', color: 'var(--peach-500)', flexShrink: 0, transition: 'transform 0.2s ease' }}>
+                  <Ico.ArrowRight style={{ width: 14, height: 14 }}/>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ position: 'relative', zIndex: 4, display: 'flex', gap: 24, alignItems: 'center', padding: '0 56px 24px', flexWrap: 'wrap' }}>
         <span className="muted" style={{ fontSize: 13 }}>Trusted by curious minds at</span>
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', fontSize: 13, fontWeight: 600, color: 'var(--ink-500)' }}>
           {['Stanford', '·', 'Khan Academy', '·', 'OpenStax', '·', 'MIT OCW'].map((s, i) => (
             <span key={i} style={{ color: i % 2 === 1 ? 'var(--ink-200)' : undefined }}>{s}</span>
           ))}
         </div>
+      </div>
+
+      {/* Footer attribution */}
+      <div style={{ borderTop: '1px solid var(--ink-100)', padding: '18px 56px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, fontSize: 12, color: 'var(--ink-400)', position: 'relative', zIndex: 4, background: 'rgba(255,255,255,0.4)' }}>
+        <span>© 2026 AMI — Autonomous Learning Orchestrator</span>
+        <span>Voice Intelligence: <strong>Gnani Prisma</strong> (STT) & <strong>Gnani Timbre</strong> (TTS) · Multi-lingual Indic Speech Engine</span>
       </div>
     </div>
   )

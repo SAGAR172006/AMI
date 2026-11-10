@@ -244,3 +244,12 @@ input, textarea { font-family: inherit; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.4s !important; transition-duration: 0.2s !important; }
 }
+
+.voice-feature-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md) !important;
+  border-color: var(--peach-300) !important;
+}
+.voice-feature-card:hover span:last-child {
+  transform: translateX(3px);
+}

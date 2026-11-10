@@ -1,3 +1,5 @@
+import { PHOTO_CONTENT } from '../data/content.js'
+
 // In dev: Vite proxy rewrites /api → localhost:3001, so BASE = '/api' works.
 // In production (Vercel): set VITE_API_URL to your Render backend URL, e.g.
 //   VITE_API_URL=https://ami-backend.onrender.com
@@ -71,12 +73,34 @@ export const api = {
     return data
   },
 
-  // Demo modules (no auth needed — instant load from Supabase)
-  getDemoModule: (id) => req('GET', `/demo/${id}`),
+  // Demo modules (no auth needed — instant load from Supabase or memory)
+  getDemoModule: async (id) => {
+    try {
+      const data = await req('GET', `/demo/${id}`)
+      if (id === 'demo-photosynthesis' && !data.mock_test) {
+        data.mock_test = PHOTO_CONTENT.mock_test
+      }
+      return data
+    } catch (err) {
+      if (id === 'demo-photosynthesis') {
+        return {
+          id: 'demo-photosynthesis',
+          topic: 'Photosynthesis',
+          status: 'complete',
+          textContent: PHOTO_CONTENT,
+          slides: PHOTO_CONTENT.slides,
+          mindmap: PHOTO_CONTENT.mindmap?.nodes || [],
+          audio: PHOTO_CONTENT.audio,
+          mock_test: PHOTO_CONTENT.mock_test
+        }
+      }
+      throw err
+    }
+  },
 
   // Chat
   embedModule: (moduleId) => req('POST', `/chat/embed/${moduleId}`),
-  chat: (moduleId, message, history) => req('POST', '/chat', { moduleId, message, history }),
+  chat: (moduleId, message, history, topic) => req('POST', '/chat', { moduleId, message, history, topic }),
 
   // Learning stats
   recordQuiz: (moduleId, sectionId, correct, attempts) =>

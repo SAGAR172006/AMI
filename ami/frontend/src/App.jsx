@@ -120,6 +120,8 @@ export default function App() {
   // route: 'landing' | 'login' | 'dashboard' | 'upload' | 'loading' | 'hub'
   const [route, setRoute] = useState('landing')
   const [topic, setTopic] = useState('Photosynthesis')
+  const [pendingTopic, setPendingTopic] = useState(null)
+  const [initialHubTab, setInitialHubTab] = useState(null)
   const [fromUpload, setFromUpload] = useState(false)
   const [uploadCtx, setUploadCtx] = useState(null)
 
@@ -165,7 +167,13 @@ export default function App() {
         setUser(data.user)
         applyUserPersona(data.user)
       }
-      setRoute('dashboard')
+      if (pendingTopic) {
+        const target = pendingTopic
+        setPendingTopic(null)
+        startLearning(target)
+      } else {
+        setRoute('dashboard')
+      }
     } catch (err) {
       throw err
     }
@@ -276,8 +284,10 @@ export default function App() {
   const startLearning = (q) => { setTopic(q); setFromUpload(false); setRoute('loading') }
   const startUpload = (payload) => { setTopic(payload.title || 'My module'); setFromUpload(true); setUploadCtx(payload); setRoute('loading') }
 
-  const onDemoLoad = async (demoId) => {
+  const onDemoLoad = async (demoId, targetTab = null) => {
     try {
+      if (targetTab) setInitialHubTab(targetTab)
+      else setInitialHubTab(null)
       const mod = await api.getDemoModule(demoId)
       setCurrentModule(mod)
       setRoute('hub')
@@ -331,10 +341,27 @@ export default function App() {
         <LandingPage
           intensity={1.0}
           onStart={(q) => {
-            if (q && typeof q === 'string') startLearning(q)
-            else setRoute('dashboard')
+            if (q && typeof q === 'string') {
+              const trimmed = q.trim()
+              if (!user && !getToken()) {
+                if (trimmed.toLowerCase() === 'photosynthesis') {
+                  onDemoLoad('demo-photosynthesis')
+                  return
+                }
+                setPendingTopic(trimmed)
+                setRoute('login')
+                return
+              }
+              startLearning(trimmed)
+            } else {
+              setRoute('dashboard')
+            }
           }}
-          onUpload={() => setRoute('upload')}
+          onDemoLaunch={(demoId, targetTab) => onDemoLoad(demoId, targetTab)}
+          onUpload={() => {
+            if (!user && !getToken()) setRoute('login')
+            else setRoute('upload')
+          }}
           onLogin={() => setRoute('login')}
           user={user}
         />
@@ -345,8 +372,23 @@ export default function App() {
       {route === 'dashboard' && (
         <DashboardPage
           {...topbarProps}
-          onSearch={startLearning}
-          onUpload={() => setRoute('upload')}
+          onSearch={(q) => {
+            if (!user && !getToken()) {
+              if (q.trim().toLowerCase() === 'photosynthesis') {
+                onDemoLoad('demo-photosynthesis')
+                return
+              }
+              setPendingTopic(q.trim())
+              setRoute('login')
+              return
+            }
+            startLearning(q)
+          }}
+          onDemoLaunch={(demoId, targetTab) => onDemoLoad(demoId, targetTab)}
+          onUpload={() => {
+            if (!user && !getToken()) setRoute('login')
+            else setRoute('upload')
+          }}
           onDemoLoad={onDemoLoad}
           onResume={async (item) => {
             try {
@@ -378,11 +420,14 @@ export default function App() {
             return fromUpload ? api.uploadFiles(uploadCtx.files, cleanPersona, null) : api.generateModule(topic, cleanPersona)
           }}
           onDone={(module) => { setCurrentModule(module); setRoute('hub') }}
+          onBack={() => setRoute('landing')}
+          onGoLogin={() => setRoute('login')}
         />
       )}
       {route === 'hub' && (
         <LearningHub
           module={currentModule}
+          initialTab={initialHubTab}
           {...topbarProps}
           onBack={() => setRoute('dashboard')}
         />
